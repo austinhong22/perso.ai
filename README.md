@@ -45,10 +45,9 @@ scripts/
 
 ## 환경변수(.env)
 ```
-OPENAI_API_KEY=your_key
 QDRANT_URL=http://localhost:6333
 QDRANT_COLLECTION=qa_collection
-EMBED_DIM=1536
+EMBED_DIM=768
 SIM_THRESHOLD=0.83
 TOP_K=3
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
