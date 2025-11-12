@@ -1,9 +1,7 @@
-from typing import Optional
 from pydantic import BaseSettings, Field
 
 
 class Settings(BaseSettings):
-    openai_api_key: Optional[str] = Field(default=None, validation_alias="OPENAI_API_KEY")
     qdrant_url: str = Field(default="http://localhost:6333", validation_alias="QDRANT_URL")
     qdrant_collection: str = Field(default="qa_collection", validation_alias="QDRANT_COLLECTION")
     embed_dim: int = Field(default=1536, validation_alias="EMBED_DIM")

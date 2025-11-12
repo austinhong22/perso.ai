@@ -1,26 +1,49 @@
 # Perso.ai 챗봇 시스템
 
 ## 사용 기술 스택
-- Backend: [작성 예정]
-- Frontend: [작성 예정]
-- 인프라/배포: [작성 예정]
-- 아키텍처 원칙: [작성 예정]
+- Backend: FastAPI, Uvicorn, Pydantic v2, Qdrant Client, Sentence-Transformers(ko‑SBERT), Pandas/Openpyxl, Pytest
+- Frontend: Next.js 14(App Router), React 18, TypeScript 5
+- 인프라/배포: Qdrant(Docker 로컬), 프론트(Vercel/Netlify), 백엔드(Render/Railway/Fly.io) 대상
+- 아키텍처 원칙: Lightweight Clean Architecture(domain/application/infrastructure/interfaces), OCP로 임베딩/리트리버 교체 용이
 
 ## 벡터 DB 및 임베딩 방식
-- Vector DB 선택/사유: [작성 예정]
-- 컬렉션/스키마(차원, payload): [작성 예정]
-- 임베딩 모델/프로바이더: [작성 예정]
-- 인덱싱(ingest) 파이프라인: [작성 예정]
-- 검색(쿼리 → Top-K) 및 랭킹: [작성 예정]
-- 응답 생성과 출처 표기 방식: [작성 예정]
+- Vector DB 선택/사유: Qdrant
+  - 오픈소스 기반으로 로컬·클라우드 환경 모두에서 빠르게 구축 가능
+  - Python SDK로 FastAPI와 쉽게 통합
+  - HNSW 기반 고성능 벡터 검색 제공
+  - “정확하고 빠른 유사도 검색”을 요구하는 과제에 적합. Pinecone/Weaviate 대비 설치·확장·비용이 유연해 단기간 과제에 현실적
+- 컬렉션/스키마(차원, payload):
+  - 컬렉션: `QDRANT_COLLECTION`(기본 `qa_collection`)
+  - 차원: `EMBED_DIM=768`, 거리: COSINE
+  - payload: `{question, answer}`, 포인트 ID는 질문 해시(멱등 업서트)
+- 임베딩 모델/프로바이더:
+  - 한국어 특화 ko‑SBERT 계열 로컬 임베딩(현재 `jhgan/ko-sroberta-multitask`)
+  - normalize_embeddings=True로 코사인 점수 안정화
+  - OpenAI 미사용(비용/지연 0, 오프라인 가능)
+- 인덱싱(ingest) 파이프라인:
+  - `Q&A.xlsx`의 `Unnamed: 2` 열에서 `Q.`/`A.` 교차 라인 파싱 → 접두사/공백 정리 → 질문 중복 제거
+  - 질문 임베딩 생성 후 벡터+payload 업서트
+- 검색(쿼리 → Top-K) 및 랭킹:
+  - 쿼리 임베딩 → Qdrant Top‑K=`TOP_K` 검색 → 코사인 점수 기준 정렬
+- 응답 생성과 출처 표기 방식:
+  - 임계값 이상 결과 기반으로 `answer`와 `sources`(근거 질문/답변) 반환
+  - 임계값 미만이면 가드 메시지 반환(아래 참조)
 
 ## 정확도 향상 전략
-- 유사도 임계값/가드 메시지: [작성 예정]
-- 청크 기준/오버랩 정책: [작성 예정]
-- 리트리벌/재순위화 전략: [작성 예정]
-- 출처 표기/근거 기반 응답: [작성 예정]
-- 캐싱/QA 페어 보강: [작성 예정]
-- 테스트 전략(TDD-lite): [작성 예정]
+- 유사도 임계값/가드 메시지:
+  - “모델이 근거 없는 답변을 생성하지 않도록” 유사도 임계값(`SIM_THRESHOLD=0.83`) 기반 Hallucination Guard 적용
+  - 임계값 미만 시: “데이터셋에 없어요. 비슷한 질문으로 다시 시도해보세요.”처럼 정직하고 친절한 UX 문구로 응답
+- 청크 기준/오버랩 정책:
+  - 본 과제는 Q/A 단위 데이터로 청크 불필요
+  - 문서형 확장 시 의미 단위 300~800 토큰, 오버랩 50~100 권장
+- 리트리벌/재순위화 전략:
+  - 기본 Top‑K=`TOP_K(3)` 사용. 필요 시 BM25+벡터 하이브리드 및 rerank 추가 가능(설계 OCP)
+- 출처 표기/근거 기반 응답:
+  - 응답에 `sources`를 포함해 신뢰성 제공(프론트에서 같이 노출)
+- 캐싱/QA 페어 보강:
+  - 빈번 질의 캐싱, 추가 QA 페어로 리콜 향상
+- 테스트 전략(TDD-lite):
+  - 파서/임계값/계약에 대한 최소 테스트로 회귀 방지(`backend/tests/test_search.py`, smoke_check)
 
 ## 구조
 ```
@@ -45,10 +68,9 @@ scripts/
 
 ## 환경변수(.env)
 ```
-OPENAI_API_KEY=your_key
 QDRANT_URL=http://localhost:6333
 QDRANT_COLLECTION=qa_collection
-EMBED_DIM=1536
+EMBED_DIM=768
 SIM_THRESHOLD=0.83
 TOP_K=3
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
@@ -79,5 +101,3 @@ npm run dev
 ```bash
 docker run -d --name qdrant -p 6333:6333 qdrant/qdrant:latest
 ```
-
-
