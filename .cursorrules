@@ -1,0 +1,8 @@
+# Project Rules (Python RAG)
+
+- Use lightweight Clean Architecture (domain/application/infrastructure/interfaces).
+- Design for OCP: add new strategies/data sources without changing core logic.
+- TDD-lite with pytest on key use cases (retriever, threshold, API contract).
+- Hallucination guard: use similarity threshold and source reference;  
+  when below threshold → respond with "죄송해요, 제가 가지고 있는 데이터셋에는 해당 내용이 없어요."
+- FastAPI + env-driven config; suitable for free hosting (Render/Vercel).
