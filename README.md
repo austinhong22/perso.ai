@@ -4,7 +4,11 @@
 - Backend: FastAPI, Uvicorn, Pydantic v2, Qdrant Client, Sentence-Transformers(ko‑SBERT), Pandas/Openpyxl, Pytest
 - Frontend: Next.js 14(App Router), React 18, TypeScript 5
 - 인프라/배포: Qdrant(Docker 로컬), 프론트(Vercel/Netlify), 백엔드(Render/Railway/Fly.io) 대상
-- 아키텍처 원칙: Lightweight Clean Architecture(domain/application/infrastructure/interfaces), OCP로 임베딩/리트리버 교체 용이
+- 아키텍처 원칙: Lightweight Clean Architecture(domain/application/infrastructure), OCP로 임베딩/리트리버 교체 용이
+  - Domain: QAPair, SearchResult 엔티티 및 Retriever/Embedder 인터페이스
+  - Application: QASearchUseCase로 비즈니스 로직 오케스트레이션
+  - Infrastructure: QdrantRetriever, SentenceTransformerEmbedder, HallucinationGuard 구현체
+  - Interface: FastAPI 라우트에서 UseCase 주입 및 호출
 
 ## 벡터 DB 및 임베딩 방식
 - Vector DB 선택/사유: Qdrant
@@ -26,8 +30,9 @@
 - 검색(쿼리 → Top-K) 및 랭킹:
   - 쿼리 임베딩 → Qdrant Top‑K=`TOP_K` 검색 → 코사인 점수 기준 정렬
 - 응답 생성과 출처 표기 방식:
-  - 임계값 이상 결과 기반으로 `answer`와 `sources`(근거 질문/답변) 반환
-  - 임계값 미만이면 가드 메시지 반환(아래 참조)
+  - UseCase에서 임계값 이상 결과 기반으로 `answer`와 `sources`(근거 질문/답변) 반환
+  - 임계값 미만이면 HallucinationGuard의 가드 메시지 반환
+  - 프론트엔드에서 sources 배열을 출처로 표시
 
 ## 정확도 향상 전략
 - 유사도 임계값/가드 메시지:
@@ -47,31 +52,45 @@
   - 본 과제는 Q/A 단위 데이터로 청크 불필요
   - 문서형 확장 시 의미 단위 300~800 토큰, 오버랩 50~100 권장
 - 리트리벌/재순위화 전략:
-  - 기본 Top‑K=`TOP_K(3)` 사용. 필요 시 BM25+벡터 하이브리드 및 rerank 추가 가능(설계 OCP)
+  - 기본 Top‑K=`TOP_K(3)` 사용. 필요 시 BM25+벡터 하이브리드 및 rerank 추가 가능(Retriever 인터페이스 교체로 OCP 준수)
 - 출처 표기/근거 기반 응답:
   - 응답에 `sources`를 포함해 신뢰성 제공(프론트에서 같이 노출)
+  - HallucinationGuard가 임계값 기반 유효성 검증
 - 캐싱/QA 페어 보강:
   - 빈번 질의 캐싱, 추가 QA 페어로 리콜 향상
 - 테스트 전략(TDD-lite):
   - 파서/임계값/계약에 대한 최소 테스트로 회귀 방지(`backend/tests/test_search.py`, smoke_check)
+  - pytest conftest.py로 자동 ingest fixture 구성, 테스트 독립성 보장
 
 ## 구조
 ```
+app/                      # 클린 아키텍처 계층
+  domain/
+    entities.py          # QAPair, SearchResult 엔티티
+    repositories.py      # Retriever, Embedder 인터페이스 (OCP)
+  application/
+    use_cases.py         # QASearchUseCase (비즈니스 로직 오케스트레이션)
+  infrastructure/
+    repositories.py      # QdrantRetriever, SentenceTransformerEmbedder 구현체
+    guards.py            # HallucinationGuard (임계값 가드)
+    config.py            # 환경 설정
 backend/
-  app.py
-  ingest.py
+  app.py                 # FastAPI 엔트리포인트 (UseCase 사용)
+  ingest.py              # 데이터 파싱 및 Qdrant 업서트
   requirements.txt
   config.py
   tests/
-    test_search.py
+    conftest.py          # pytest fixture (자동 ingest)
+    test_search.py       # API 계약 테스트
 frontend/
   package.json
   next.config.mjs
   src/
     app/page.tsx
-    components/Chat.tsx
-    lib/api.ts
+    components/Chat.tsx  # sources 출처 표시 포함
+    lib/api.ts           # /ask 엔드포인트 호출
 scripts/
+  tune_threshold.py      # 임계값 튜닝 스크립트
   export_examples.py
 .env
 ```
