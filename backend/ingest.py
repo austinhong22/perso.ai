@@ -82,14 +82,25 @@ def embed_batch(texts: List[str], batch_size: int = 64) -> np.ndarray:
 def ensure_collection(client: QdrantClient, name: str, size: int):
     try:
         client.get_collection(name)
+        print(f"[SKIP] collection '{name}' already exists")
     except Exception:
+        # HNSW 최적화 파라미터 적용
         client.create_collection(
             collection_name=name,
             vectors_config=models.VectorParams(
                 size=size,
-                distance=models.Distance.COSINE
+                distance=models.Distance.COSINE,
+                hnsw_config=models.HnswConfigDiff(
+                    m=16,  # 각 노드 연결 수 (16 = balanced)
+                    ef_construct=100,  # 색인 구축 탐색 깊이
+                    full_scan_threshold=10000,
+                )
             ),
+            optimizers_config=models.OptimizersConfigDiff(
+                indexing_threshold=10000,
+            )
         )
+        print(f"[OK] created collection '{name}' with HNSW optimization")
 
 def make_id(s: str) -> int:
     # 질문 해시를 id로 사용 (idempotent upsert)

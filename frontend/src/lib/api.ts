@@ -18,11 +18,11 @@ export async function ask(
 
   try {
     const resp = await fetch(`${base}/ask`, {
-      method: "POST",
+    method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ query }),
+    body: JSON.stringify({ query }),
       signal: signal || controller.signal,
     });
 

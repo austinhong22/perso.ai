@@ -15,7 +15,7 @@ export default function Page() {
         }}
       >
         <ChatContainer />
-      </main>
+    </main>
       <Footer />
     </>
   );
