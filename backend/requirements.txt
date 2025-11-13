@@ -13,7 +13,7 @@ google-generativeai==0.8.3
 # CPU-only PyTorch (CUDA 제외 - 2.3GB → 150MB 절약)
 # --extra-index-url: 추가 저장소로 PyTorch CPU 버전 지정
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.4.0
+torch==2.5.1+cpu
 sentence-transformers==3.3.1
 
 # 주의: pandas, openpyxl, numpy는 ingest 전용
