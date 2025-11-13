@@ -7,8 +7,15 @@ from pydantic import BaseModel
 from qdrant_client import QdrantClient
 from dotenv import load_dotenv
 
-# app 패키지 경로 추가
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# app 패키지 경로 추가 (Render 환경 대응)
+_project_root = Path(__file__).parent.parent.absolute()
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+
+# PYTHONPATH 환경변수도 확인
+_pythonpath = os.environ.get("PYTHONPATH")
+if _pythonpath and _pythonpath not in sys.path:
+    sys.path.insert(0, _pythonpath)
 
 from app.application.use_cases import QASearchUseCase
 from app.infrastructure.repositories import QdrantRetriever, SentenceTransformerEmbedder
