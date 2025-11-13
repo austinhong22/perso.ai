@@ -6,7 +6,7 @@ services:
     plan: free
     branch: main
     buildCommand: pip install -r backend/requirements.txt
-    startCommand: cd backend && gunicorn app:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+    startCommand: PYTHONPATH=/opt/render/project/src gunicorn backend.app:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
