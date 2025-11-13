@@ -1,0 +1,95 @@
+.messageList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.loadingBubble {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.avatar {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--perso-gradient-subtle);
+  border: 1px solid var(--border-light);
+}
+
+.typingIndicator {
+  display: flex;
+  gap: 0.375rem;
+  padding: var(--space-md);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  border-top-left-radius: 0.25rem;
+}
+
+.typingIndicator span {
+  width: 8px;
+  height: 8px;
+  background: var(--perso-primary);
+  border-radius: var(--radius-full);
+  animation: typing 1.4s infinite;
+  opacity: 0.4;
+}
+
+.typingIndicator span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.typingIndicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typingIndicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .messageList {
+    gap: var(--space-md);
+  }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .avatar svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
