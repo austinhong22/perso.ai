@@ -17,6 +17,7 @@ from app.infrastructure.guards import HallucinationGuard
 # ====== 설정 로드 ======
 load_dotenv()
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")  # Qdrant Cloud용
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "qa_collection")
 EMBED_MODEL = os.getenv("EMBED_MODEL", "snunlp/KR-SBERT-V40K-klueNLI-augSTS")
 SIM_THRESHOLD = float(os.getenv("SIM_THRESHOLD", "0.75"))
@@ -43,7 +44,12 @@ _qc: Optional[QdrantClient] = None
 def get_qdrant() -> QdrantClient:
     global _qc
     if _qc is None:
-        _qc = QdrantClient(url=QDRANT_URL)
+        if QDRANT_API_KEY:
+            # Qdrant Cloud 연결
+            _qc = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
+        else:
+            # 로컬 Qdrant 연결
+            _qc = QdrantClient(url=QDRANT_URL)
     return _qc
 
 def get_embedder() -> SentenceTransformerEmbedder:

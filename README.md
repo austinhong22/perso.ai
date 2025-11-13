@@ -477,5 +477,28 @@ frontend/
     favicon.svg         # 파비콘
 ```
 
+## 🚀 배포 가이드
+
+본 프로젝트는 **완전 무료**로 배포할 수 있습니다.
+
+### 배포 구조
+```
+Frontend (Vercel - 무료)
+    ↓
+Backend (Render - 무료 750시간/월)
+    ↓
+Qdrant Cloud (무료 1GB)
+```
+
+### 빠른 시작
+자세한 배포 방법은 **[DEPLOYMENT.md](./DEPLOYMENT.md)** 를 참고하세요.
+
+**배포 순서:**
+1. Qdrant Cloud 설정 + 데이터 마이그레이션
+2. Backend를 Render에 배포
+3. Frontend를 Vercel에 배포
+
+**예상 소요 시간:** 30분
+
 
 

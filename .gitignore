@@ -30,10 +30,12 @@ build/
 htmlcov/
 .python-version
 
-# Env files
+# Env files (환경변수 - API Key 포함)
 .env
 .env.*
 !.env.sample
+frontend/.env.local
+frontend/.env.production
 
 # Node / Next.js
 node_modules/
@@ -47,5 +49,34 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 *.log
+
+# 배포 관련 민감 정보
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# 서버 실행 관련 (로컬 테스트용)
+backend_server.pid
+frontend_server.pid
+backend_server.log
+frontend_server.log
+*.pid
+*.log
+
+# 데이터베이스 로컬 파일
+*.db
+*.sqlite
+*.sqlite3
+qdrant_storage/
+
+# 임시 파일
+*.tmp
+*.temp
+.DS_Store
+*.swp
+*~
 
 
