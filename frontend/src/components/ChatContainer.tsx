@@ -29,6 +29,19 @@ export default function ChatContainer() {
     scrollToBottom();
   }, [messages]);
 
+  // Reset handler: 로고 클릭 시 초기 화면으로 복귀
+  useEffect(() => {
+    const handleReset = () => {
+      setMessages([]);
+      setError(null);
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    };
+    window.addEventListener("perso:reset-chat", handleReset);
+    return () => window.removeEventListener("perso:reset-chat", handleReset);
+  }, []);
+
   const handleSendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
 
@@ -84,31 +97,80 @@ export default function ChatContainer() {
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>
               <svg
-                width="64"
-                height="64"
-                viewBox="0 0 100 100"
+                width="96"
+                height="96"
+                viewBox="0 0 120 120"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="45"
-                  stroke="url(#gradient)"
-                  strokeWidth="4"
+                {/* 외곽 링 - 희미한 배경 */}
+                <circle cx="60" cy="60" r="52" stroke="url(#bgRingEmpty)" strokeWidth="0.5" opacity="0.08" fill="none" />
+                <circle cx="60" cy="60" r="46" stroke="url(#bgRingEmpty)" strokeWidth="0.5" opacity="0.05" fill="none" />
+                
+                {/* 불완전한 원 - 글로우 레이어 */}
+                <path
+                  d="M 95 45 A 35 35 0 1 1 45 25"
+                  stroke="url(#glowGradientEmpty)"
+                  strokeWidth="12"
+                  strokeLinecap="round"
                   fill="none"
-                />
+                  opacity="0.25"
+                  filter="url(#blurEmpty)"
+                >
+                  <animateTransform
+                    attributeName="transform"
+                    attributeType="XML"
+                    type="rotate"
+                    from="0 60 60"
+                    to="360 60 60"
+                    dur="8s"
+                    repeatCount="indefinite"
+                  />
+                </path>
+                
+                {/* 불완전한 원 - 메인 */}
+                <path
+                  d="M 95 45 A 35 35 0 1 1 45 25"
+                  stroke="url(#mainGradientEmpty)"
+                  strokeWidth="7"
+                  strokeLinecap="round"
+                  fill="none"
+                >
+                  <animateTransform
+                    attributeName="transform"
+                    attributeType="XML"
+                    type="rotate"
+                    from="0 60 60"
+                    to="360 60 60"
+                    dur="8s"
+                    repeatCount="indefinite"
+                  />
+                </path>
+                
                 <defs>
-                  <linearGradient
-                    id="gradient"
-                    x1="0%"
-                    y1="0%"
-                    x2="100%"
-                    y2="100%"
-                  >
+                  {/* 배경 링 그라데이션 */}
+                  <linearGradient id="bgRingEmpty" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#6366f1" />
-                    <stop offset="100%" stopColor="#a855f7" />
+                    <stop offset="100%" stopColor="#d946ef" />
                   </linearGradient>
+                  
+                  {/* 메인 그라데이션 */}
+                  <linearGradient id="mainGradientEmpty" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#6366f1" />
+                    <stop offset="50%" stopColor="#8b5cf6" />
+                    <stop offset="100%" stopColor="#d946ef" />
+                  </linearGradient>
+                  
+                  {/* 글로우 그라데이션 */}
+                  <linearGradient id="glowGradientEmpty" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#6366f1" />
+                    <stop offset="100%" stopColor="#d946ef" />
+                  </linearGradient>
+                  
+                  {/* 블러 필터 */}
+                  <filter id="blurEmpty">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="3" />
+                  </filter>
                 </defs>
               </svg>
             </div>
@@ -118,6 +180,37 @@ export default function ChatContainer() {
             <p className={styles.emptyDescription}>
               궁금하신 내용을 질문해주세요. Perso AI가 정확한 답변을 드리겠습니다.
             </p>
+            
+            {/* 추천 질문 카드 */}
+            <div className={styles.suggestedQuestions}>
+              <button
+                className={styles.questionCard}
+                onClick={() => handleSendMessage("Perso.ai는 어떤 서비스인가요?")}
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 11H9v-2h2v2zm0-4H9V5h2v4z"/>
+                </svg>
+                <span>Perso.ai는 어떤 서비스인가요?</span>
+              </button>
+              <button
+                className={styles.questionCard}
+                onClick={() => handleSendMessage("Perso.ai의 주요 기능은 무엇인가요?")}
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                </svg>
+                <span>주요 기능이 궁금해요</span>
+              </button>
+              <button
+                className={styles.questionCard}
+                onClick={() => handleSendMessage("어떤 언어를 지원하나요?")}
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM8 14H6v-1.5A1.5 1.5 0 017.5 11H8v3zm4 0h-2v-3h.5A1.5 1.5 0 0112 12.5V14zm2-7H6V5h8v2z"/>
+                </svg>
+                <span>지원 언어는 어떻게 되나요?</span>
+              </button>
+            </div>
           </div>
         ) : (
           <>

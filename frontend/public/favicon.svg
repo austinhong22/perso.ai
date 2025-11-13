@@ -1,10 +1,22 @@
 <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="50" cy="50" r="45" stroke="url(#gradient)" stroke-width="8" fill="none"/>
+  <!-- 불완전한 원 - 글로우 -->
+  <path d="M 82 38 A 28 28 0 1 1 38 18" stroke="url(#glowFav)" stroke-width="10" stroke-linecap="round" fill="none" opacity="0.25" filter="url(#blurFav)"/>
+  <!-- 불완전한 원 - 메인 -->
+  <path d="M 82 38 A 28 28 0 1 1 38 18" stroke="url(#mainFav)" stroke-width="6" stroke-linecap="round" fill="none"/>
   <defs>
-    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="mainFav" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#6366f1"/>
-      <stop offset="100%" stop-color="#a855f7"/>
+      <stop offset="50%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#d946ef"/>
     </linearGradient>
+    <linearGradient id="glowFav" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#d946ef"/>
+    </linearGradient>
+    <filter id="blurFav">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2"/>
+    </filter>
   </defs>
 </svg>
+
 

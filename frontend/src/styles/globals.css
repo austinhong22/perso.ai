@@ -126,23 +126,19 @@ textarea:focus {
   outline-offset: 2px;
 }
 
-/* 스크롤바 스타일 */
+/* 스크롤바 숨김 */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  display: none;
 }
 
-::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+/* Firefox */
+html {
+  scrollbar-width: none;
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--border-medium);
-  border-radius: var(--radius-full);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--border-dark);
+/* IE and Edge */
+body {
+  -ms-overflow-style: none;
 }
 
 /* 선택 영역 스타일 */

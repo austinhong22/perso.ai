@@ -57,6 +57,48 @@
   margin: 0;
 }
 
+.suggestedQuestions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-md);
+  width: 100%;
+  max-width: 720px;
+  margin-top: var(--space-xl);
+}
+
+.questionCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  text-align: left;
+  font-size: 0.938rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.questionCard:hover {
+  border-color: var(--perso-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.questionCard svg {
+  flex-shrink: 0;
+  color: var(--perso-primary);
+  opacity: 0.8;
+}
+
+.questionCard span {
+  flex: 1;
+  line-height: 1.5;
+}
+
 .errorBanner {
   display: flex;
   align-items: center;
