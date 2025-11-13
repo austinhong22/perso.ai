@@ -7,9 +7,13 @@ pydantic-settings==2.5.2
 qdrant-client==1.9.2
 httpx==0.27.2
 pytest==8.3.2
-sentence-transformers==3.3.1
 python-dotenv==1.0.1
 google-generativeai==0.8.3
+
+# CPU-only PyTorch (CUDA 제외 - 2.3GB → 150MB 절약)
+--index-url https://download.pytorch.org/whl/cpu
+torch==2.4.0
+sentence-transformers==3.3.1
 
 # 주의: pandas, openpyxl, numpy는 ingest 전용
 # → backend/requirements_ingest.txt 참고
