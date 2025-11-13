@@ -120,10 +120,52 @@ pytest -q
 ```
 
 ## Frontend (Next.js)
+
+### 설치 및 실행
 ```bash
 cd frontend
 npm install
-npm run dev
+
+# 환경변수 설정 (필요시)
+cp env.example .env.local
+# .env.local 파일에서 NEXT_PUBLIC_API_BASE_URL 수정
+
+npm run dev  # 개발 서버 (http://localhost:3000)
+npm run build  # 프로덕션 빌드
+npm start  # 프로덕션 서버
+```
+
+### 주요 기능
+- **Perso 브랜딩**: 밝은 톤 + 보라 그라데이션 포인트
+- **ChatGPT/Claude 스타일 UI**: 메시지 버블, 아바타, 타이핑 인디케이터
+- **Markdown 렌더링**: 코드 블록, 볼드, 리스트, 링크 지원
+- **출처 표시**: 접기/펼치기 패널로 sources 및 유사도 점수 표시
+- **반응형 디자인**: 모바일/태블릿/데스크톱 최적화
+- **접근성**: 키보드 네비게이션, ARIA 라벨, 포커스 관리
+- **에러 핸들링**: 네트워크 오류, 타임아웃, 빈 입력 상태 처리
+
+### 구조
+```
+frontend/
+  src/
+    app/
+      layout.tsx        # 루트 레이아웃 + 메타데이터
+      page.tsx          # 메인 페이지
+    components/
+      Header.tsx        # 헤더 (로고, CTA)
+      Footer.tsx        # 푸터
+      ChatContainer.tsx # 챗 컨테이너 (상태 관리)
+      ChatInput.tsx     # 입력창 (자동 리사이즈)
+      MessageList.tsx   # 메시지 리스트
+      MessageBubble.tsx # 메시지 버블
+      MarkdownContent.tsx  # Markdown 렌더러
+      SourcesPanel.tsx  # 출처 패널
+    lib/
+      api.ts            # API 클라이언트
+    styles/
+      globals.css       # 전역 스타일 + 테마 변수
+  public/
+    favicon.svg         # 파비콘
 ```
 
 ## Qdrant (Docker)
