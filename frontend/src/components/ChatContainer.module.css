@@ -1,0 +1,147 @@
+.chatContainer {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--header-height) - var(--footer-height));
+  max-width: var(--chat-max);
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+  position: relative;
+}
+
+.messagesWrapper {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-xl) 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.emptyState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-2xl);
+  gap: var(--space-lg);
+}
+
+.emptyIcon {
+  opacity: 0.9;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.emptyTitle {
+  font-size: 1.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.emptyDescription {
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+  max-width: 480px;
+  margin: 0;
+}
+
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--error);
+  border-radius: var(--radius-md);
+  color: var(--error);
+  font-size: 0.875rem;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.errorBanner svg {
+  flex-shrink: 0;
+}
+
+.errorClose {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--error);
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+.errorClose:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+@media (max-width: 768px) {
+  .chatContainer {
+    padding: 0 var(--space-md);
+  }
+
+  .messagesWrapper {
+    padding: var(--space-lg) 0;
+  }
+
+  .emptyState {
+    padding: var(--space-xl) var(--space-md);
+    gap: var(--space-md);
+  }
+
+  .emptyTitle {
+    font-size: 1.5rem;
+  }
+
+  .emptyDescription {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .emptyIcon svg {
+    width: 48px;
+    height: 48px;
+  }
+
+  .emptyTitle {
+    font-size: 1.25rem;
+  }
+
+  .emptyDescription {
+    font-size: 0.938rem;
+  }
+}
+
