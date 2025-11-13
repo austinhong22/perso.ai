@@ -49,7 +49,7 @@ def get_qdrant() -> QdrantClient:
             _qc = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
         else:
             # 로컬 Qdrant 연결
-            _qc = QdrantClient(url=QDRANT_URL)
+        _qc = QdrantClient(url=QDRANT_URL)
     return _qc
 
 def get_embedder() -> SentenceTransformerEmbedder:
@@ -81,7 +81,7 @@ def get_use_case() -> QASearchUseCase:
             guard=guard,
             top_k=TOP_K,
             rewriter=rewriter  # Gemini Rewriter 주입
-        )
+    )
     return _use_case
 
 # ====== 스키마 ======
