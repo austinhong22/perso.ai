@@ -65,11 +65,16 @@ def get_retriever() -> QdrantRetriever:
 def get_use_case() -> QASearchUseCase:
     global _use_case
     if _use_case is None:
+        from app.application.gemini_rewriter import GeminiQueryRewriter
+        
         guard = HallucinationGuard(threshold=SIM_THRESHOLD)
+        rewriter = GeminiQueryRewriter()  # Gemini API 연결
+        
         _use_case = QASearchUseCase(
             retriever=get_retriever(),
             guard=guard,
-            top_k=TOP_K
+            top_k=TOP_K,
+            rewriter=rewriter  # Gemini Rewriter 주입
         )
     return _use_case
 
