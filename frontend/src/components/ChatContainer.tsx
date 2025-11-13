@@ -78,7 +78,7 @@ export default function ChatContainer() {
   };
 
   return (
-    <div className={styles.chatContainer}>
+    <div id="chat" className={styles.chatContainer}>
       <div className={styles.messagesWrapper}>
         {messages.length === 0 ? (
           <div className={styles.emptyState}>

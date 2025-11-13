@@ -44,7 +44,7 @@ export default function Header() {
         </Link>
 
         <nav className={styles.nav}>
-          <button className="btn btn-primary" aria-label="지금 시작하기">
+          <Link href="/#chat" className="btn btn-primary" aria-label="지금 시작하기">
             지금 시작하기
             <svg
               width="16"
@@ -55,7 +55,7 @@ export default function Header() {
             >
               <path d="M8 0L6.59 1.41 12.17 7H0v2h12.17l-5.58 5.59L8 16l8-8z" />
             </svg>
-          </button>
+          </Link>
         </nav>
       </div>
     </header>

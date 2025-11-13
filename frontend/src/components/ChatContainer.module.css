@@ -6,6 +6,7 @@
   margin: 0 auto;
   padding: 0 var(--space-lg);
   position: relative;
+  scroll-margin-top: var(--header-height);
 }
 
 .messagesWrapper {
