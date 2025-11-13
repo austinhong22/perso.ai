@@ -11,7 +11,8 @@ python-dotenv==1.0.1
 google-generativeai==0.8.3
 
 # CPU-only PyTorch (CUDA 제외 - 2.3GB → 150MB 절약)
---index-url https://download.pytorch.org/whl/cpu
+# --extra-index-url: 추가 저장소로 PyTorch CPU 버전 지정
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.4.0
 sentence-transformers==3.3.1
 
