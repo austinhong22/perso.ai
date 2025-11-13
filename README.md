@@ -21,31 +21,26 @@
 - ChatGPT/Claude 스타일 UI, Perso.ai 브랜딩, 실시간 채팅
 
 ### 아키텍처: Clean Architecture (계층 분리)
+
+**4계층 구조:**
+
 ```
-┌─────────────────────────────────────────────────────────┐
-│ Interface Layer (FastAPI)                               │
-│  - /ask 엔드포인트                                       │
-│  - 의존성 주입 (UseCase)                                │
-└─────────────────────────────────────────────────────────┘
-                        ↓
-┌─────────────────────────────────────────────────────────┐
-│ Application Layer (비즈니스 로직)                        │
-│  - QASearchUseCase: 검색 오케스트레이션                  │
-│  - GeminiQueryRewriter: 쿼리 전처리                      │
-└─────────────────────────────────────────────────────────┘
-                        ↓
-┌─────────────────────────────────────────────────────────┐
-│ Domain Layer (추상화)                                    │
-│  - Retriever, Embedder 인터페이스 정의                   │
-│  - QAPair, SearchResult 엔티티                          │
-└─────────────────────────────────────────────────────────┘
-                        ↓
-┌─────────────────────────────────────────────────────────┐
-│ Infrastructure Layer (구현체)                            │
-│  - QdrantRetriever: Vector DB 검색                      │
-│  - SentenceTransformerEmbedder: 벡터 변환               │
-│  - HallucinationGuard: 동적 임계값                      │
-└─────────────────────────────────────────────────────────┘
+[Interface Layer - FastAPI]
+  ├─ /ask 엔드포인트
+  └─ 의존성 주입 (UseCase)
+          ↓
+[Application Layer - 비즈니스 로직]
+  ├─ QASearchUseCase: 검색 오케스트레이션
+  └─ GeminiQueryRewriter: 쿼리 전처리
+          ↓
+[Domain Layer - 추상화]
+  ├─ Retriever, Embedder 인터페이스 정의
+  └─ QAPair, SearchResult 엔티티
+          ↓
+[Infrastructure Layer - 구현체]
+  ├─ QdrantRetriever: Vector DB 검색
+  ├─ SentenceTransformerEmbedder: 벡터 변환
+  └─ HallucinationGuard: 동적 임계값
 ```
 
 **OCP(Open-Closed Principle) 적용**
@@ -53,35 +48,8 @@
 - Vector DB 교체: `Retriever` 인터페이스만 구현
 - 확장에는 열려있고, 수정에는 닫혀있음
 
-### 검색 파이프라인 (3단계)
-```
-사용자 질문: "이게 뭐하는 프로젝트야"
-    ↓
-┌────────────────────────────────────────────────────┐
-│ 1단계: Gemini Query Rewriting                      │
-│  - 의도 분류: "서비스 소개 요청"                    │
-│  - 정규화: "Perso.ai는 어떤 서비스인가요?"          │
-│  - 관련성 체크: ✅ PASS                             │
-└────────────────────────────────────────────────────┘
-    ↓
-┌────────────────────────────────────────────────────┐
-│ 2단계: Vector DB Ensemble Search (동적 가중치)     │
-│  - 원본 질문 벡터 검색                              │
-│  - 정규화 질문 벡터 검색                            │
-│  - Top-5 후보 선택                                  │
-│  - 최고 점수: 0.90                                  │
-└────────────────────────────────────────────────────┘
-    ↓
-┌────────────────────────────────────────────────────┐
-│ 3단계: Dynamic Threshold Guard                     │
-│  - 구어체 질문 → 임계값 0.35 (관대)               │
-│  - 0.90 > 0.35 ✅ PASS                             │
-└────────────────────────────────────────────────────┘
-    ↓
-✅ 최종 답변 반환 + Sources 출처 표시
-```
 
-## 벡터 DB 및 임베딩 방식 (직접 설계)
+## 벡터 DB 및 임베딩 방식 
 
 ### 1. Vector DB 선택: Qdrant
 
@@ -190,21 +158,7 @@ Q&A.xlsx
    0.90 > 0.35 ✅ → 답변 반환
 ```
 
-**응답 구조**
-```json
-{
-  "answer": "Perso.ai는 이스트소프트가 개발한...",
-  "score": 0.90,
-  "matched_question": "Perso.ai는 어떤 서비스인가요?",
-  "sources": [
-    "Q: Perso.ai는 어떤 서비스인가요?",
-    "A: Perso.ai는...",
-    "Score: 0.900"
-  ]
-}
-```
-
-## 정확도 향상 전략 (핵심 차별화)
+## 정확도 향상 전략 
 
 ### 전략 개요
 
@@ -374,80 +328,9 @@ F1 Score: 0.99
 
 ---
 
-## 💡 왜 이 구조가 "Vector DB 기반 설계"를 만족하는가?
 
-### 핵심 질문: "Gemini 사용하면 Vector DB 설계 능력이 부족한 거 아닌가요?"
 
-**❌ 오해**: Gemini가 답을 결정한다  
-**✅ 실제**: Vector DB가 100% 결정, Gemini는 검색 전처리만
-
----
-
-### 1. Vector DB의 역할 = 최종 의사결정권
-
-```python
-# 실제 검색 흐름
-질문: "이게 뭐하는 프로젝트야"
-
-[Gemini의 역할] 🔧 전처리 (Pre-processing)
-입력: "이게 뭐하는 프로젝트야"
-출력: "Perso.ai는 어떤 서비스인가요?"
-→ 단순히 "검색할 또 다른 질문" 생성
-
-[Vector DB의 역할] 🎯 최종 의사결정 (Decision Making)
-검색 A: "이게 뭐하는 프로젝트야" → KR-SBERT → Qdrant → 점수 0.26
-검색 B: "Perso.ai는 어떤 서비스인가요?" → KR-SBERT → Qdrant → 점수 0.97
-
-최종 점수 계산 (Ensemble):
-0.26 × 0.1 + 0.97 × 0.9 = 0.899
-
-→ 이 0.899는 Vector DB의 COSINE 유사도!
-→ Gemini는 점수 계산에 직접 관여 안 함!
-```
-
-**핵심**: Gemini는 "어떤 질문으로 검색할지" 도와줄 뿐, **최종 답은 Vector DB의 유사도 점수로만 결정**
-
----
-
-### 2. 설계 능력 입증 포인트
-
-| 설계 요소 | 직접 설계 여부 | 증명 |
-|-----------|---------------|------|
-| **임베딩 모델 선택** | ✅ 직접 선택 | KR-SBERT vs OpenAI 비교 분석 |
-| **Vector DB 선택** | ✅ 직접 선택 | Qdrant vs Pinecone/Weaviate 비교 |
-| **HNSW 파라미터** | ✅ 직접 튜닝 | m=16, ef_construct=100 근거 제시 |
-| **유사도 함수** | ✅ 직접 선택 | COSINE vs EUCLIDEAN 분석 |
-| **Ensemble 전략** | ✅ 직접 설계 | 동적 가중치 알고리즘 구현 |
-| **동적 임계값** | ✅ 직접 설계 | 질문 유형별 임계값 최적화 |
-
-**결론**: 벡터 검색의 핵심 설계는 **모두 직접** 수행
-
----
-
-### 3. Gemini는 "Query Expansion" 기법일 뿐
-
-**전통적인 Query Expansion 예시**
-```python
-# 규칙 기반 (전통적)
-"persoai" → ["persoai", "perso ai", "Perso.ai", "퍼소"]
-
-# LLM 기반 (현대적)
-"persoai가 뭐야?" → "Perso.ai는 어떤 서비스인가요?"
-
-→ 둘 다 목적은 같음: "검색 품질 향상"
-→ LLM 사용이 Vector DB 설계를 부정하지 않음
-```
-
-**유명 시스템 사례**
-- **Google**: Query Rewriting + BERT 임베딩
-- **Elasticsearch**: Synonym Filter + BM25
-- **OpenAI RAG**: GPT-4 Query Expansion + Pinecone
-
-→ **모두 "Query 개선 + Vector 검색" 조합 사용**
-
----
-
-### 4. 실제 Vector 유사도가 유지되는 증거
+### 4. Vector 유사도가 유지되는 증거
 
 ```python
 # 코드에서 확인 가능한 부분 (app/application/use_cases.py)
@@ -478,143 +361,8 @@ def search(self, query: str) -> SearchResult:
 
 ---
 
-### 5. 반론: "가중치 0.1/0.9는 너무 Gemini 의존 아닌가요?"
 
-**답변**: 아닙니다. 여전히 Vector DB가 결정권을 가집니다.
 
-```python
-[시나리오 1] 잘못된 Gemini 변환
-질문: "주요 기능이 뭐야"
-Gemini: "요금제는?" (잘못 변환)
-
-원본 검색: "주요 기능" → 0.89 (정답)
-정규화 검색: "요금제" → 0.71 (오답)
-
-Ensemble: 0.89 × 0.1 + 0.71 × 0.9 = 0.73
-→ Vector DB가 "주요 기능" 후보를 0.89로 평가
-→ Gemini 오류를 Vector DB가 보정
-
-[시나리오 2] 원본 질문이 명확한 경우
-질문: "Perso.ai는 어떤 서비스인가요?"
-Gemini: "Perso.ai는 어떤 서비스인가요?" (동일)
-
-원본 검색: 0.98 (정답)
-정규화 검색: 0.98 (정답)
-
-→ 동적 가중치: 0.95/0.05 (정형 질문 감지)
-→ 0.98 × 0.95 + 0.98 × 0.05 = 0.98
-→ 원본 점수 그대로 유지
-```
-
-**핵심**: 
-- Gemini가 틀려도 Vector DB 점수가 보정
-- 가중치는 질문 유형에 따라 동적 조정 (0.95/0.05 ~ 0.1/0.9)
-- 최종 결정은 항상 **Vector DB의 COSINE 유사도**
-
----
-
-### 6. 비교: Gemini 없이 설계한다면?
-
-```python
-# Case A: Gemini 없는 순수 Vector DB
-질문: "이게 뭐하는 프로젝트야"
-검색: KR-SBERT → Qdrant → 점수 0.26
-임계값: 0.75
-→ 0.26 < 0.75 ❌ 답변 실패
-
-→ 정확도 60%
-
-# Case B: Gemini + Vector DB (현재)
-질문: "이게 뭐하는 프로젝트야"
-Gemini: "Perso.ai는 어떤 서비스인가요?"
-검색 A: 0.26
-검색 B: 0.97
-Ensemble: 0.899
-임계값: 0.35 (동적)
-→ 0.899 > 0.35 ✅ 답변 성공
-
-→ 정확도 98%
-```
-
-**결론**: 
-- Gemini는 **정확도를 60% → 98%로 향상**시키는 도구
-- Vector DB 설계 능력을 **부정하지 않고 강화**
-- 실제 산업에서도 "Query Expansion + Vector 검색" 표준 패턴
-
----
-
-### 7. 면접관에게 전달할 핵심 메시지
-
-```
-"저는 Vector DB 기반 검색 시스템을 설계했습니다.
-
-1. 임베딩 모델: 한국어 특화 KR-SBERT 선택 (OpenAI 대비 10배 빠름)
-2. Vector DB: Qdrant HNSW 파라미터 튜닝 (m=16, ef_construct=100)
-3. 유사도 함수: COSINE 선택 (정규화 벡터 안정성)
-4. 검색 전략: Ensemble Search (원본 + 정규화, 동적 가중치)
-5. 품질 개선: Query Rewriting (Gemini API, 정확도 +40%p)
-
-Gemini는 '검색 전처리'일 뿐, 
-최종 답변은 100% Vector DB의 유사도 점수로 결정됩니다.
-
-이는 Google, OpenAI 등 산업 표준 RAG 패턴과 동일합니다."
-```
-
----
-
-### 8. 추가 설계 능력 증명
-
-**OCP (Open-Closed Principle) 적용**
-```python
-# Embedder 인터페이스 (domain/repositories.py)
-class Embedder(ABC):
-    def embed(self, text: str) -> list[float]: ...
-
-# 구현체 교체 가능 (infrastructure/repositories.py)
-class SentenceTransformerEmbedder(Embedder): ...
-class OpenAIEmbedder(Embedder): ...  # 추가 시 기존 코드 수정 없음
-
-→ Vector DB/임베딩 모델 교체 용이 (확장에 열림)
-→ 기존 코드 수정 불필요 (수정에 닫힘)
-```
-
-**Clean Architecture 적용**
-```
-Domain Layer: 비즈니스 엔티티 (QAPair, SearchResult)
-Application Layer: 검색 로직 (QASearchUseCase)
-Infrastructure Layer: 기술 구현 (Qdrant, SBERT)
-Interface Layer: API (FastAPI)
-
-→ 계층 분리로 테스트/유지보수 용이
-→ 의존성 역전으로 확장성 확보
-```
-
----
-
-### 결론
-
-**"Gemini 사용 = Vector DB 설계 능력 부족" ❌**
-
-**실제 = "Vector DB 설계 + 현대적 Query Expansion" ✅**
-
-- Vector DB가 최종 의사결정권 보유
-- Gemini는 검색 전처리 도구일 뿐
-- 산업 표준 RAG 패턴과 동일
-- 설계 능력은 HNSW 튜닝/Ensemble/임계값에서 입증
-
-- 청크 기준/오버랩 정책:
-  - 본 과제는 Q/A 단위 데이터로 청크 불필요
-  - 문서형 확장 시 의미 단위 300~800 토큰, 오버랩 50~100 권장
-- 리트리벌/재순위화 전략:
-  - 기본 Top‑K=`TOP_K(3)` 사용. 필요 시 BM25+벡터 하이브리드 및 rerank 추가 가능(Retriever 인터페이스 교체로 OCP 준수)
-- 출처 표기/근거 기반 응답:
-  - 응답에 `sources`를 포함해 신뢰성 제공(프론트에서 같이 노출)
-  - HallucinationGuard가 임계값 기반 유효성 검증
-- 캐싱/QA 페어 보강:
-  - 빈번 질의 캐싱, 추가 QA 페어로 리콜 향상
-- 테스트 전략(TDD-lite):
-  - 파서/임계값/계약에 대한 최소 테스트로 회귀 방지(`backend/tests/test_search.py`, smoke_check)
-  - pytest conftest.py로 자동 ingest fixture 구성, 테스트 독립성 보장
 
 ## 구조
 ```
