@@ -20,28 +20,7 @@
 - **Next.js 14** (App Router), **React 18**, **TypeScript 5**
 - ChatGPT/Claude 스타일 UI, Perso.ai 브랜딩, 실시간 채팅
 
-### 아키텍처: Clean Architecture (계층 분리)
 
-**4계층 구조:**
-
-```
-[Interface Layer - FastAPI]
-  ├─ /ask 엔드포인트
-  └─ 의존성 주입 (UseCase)
-          ↓
-[Application Layer - 비즈니스 로직]
-  ├─ QASearchUseCase: 검색 오케스트레이션
-  └─ GeminiQueryRewriter: 쿼리 전처리
-          ↓
-[Domain Layer - 추상화]
-  ├─ Retriever, Embedder 인터페이스 정의
-  └─ QAPair, SearchResult 엔티티
-          ↓
-[Infrastructure Layer - 구현체]
-  ├─ QdrantRetriever: Vector DB 검색
-  ├─ SentenceTransformerEmbedder: 벡터 변환
-  └─ HallucinationGuard: 동적 임계값
-```
 
 **OCP(Open-Closed Principle) 적용**
 - 임베딩 모델 교체: `Embedder` 인터페이스만 구현
