@@ -6,6 +6,7 @@ import { ask } from "../lib/api";
 export default function Chat() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
+  const [sources, setSources] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   async function onAsk() {
@@ -13,8 +14,10 @@ export default function Chat() {
     try {
       const res = await ask(question);
       setAnswer(res.answer);
+      setSources(res.sources || []);
     } catch {
       setAnswer("요청 중 오류가 발생했습니다.");
+      setSources([]);
     } finally {
       setLoading(false);
     }
@@ -37,10 +40,19 @@ export default function Chat() {
         <div style={{ marginTop: 16 }}>
           <strong>답변</strong>
           <div>{answer}</div>
+          {sources.length > 0 && (
+            <div style={{ marginTop: 12, fontSize: "0.9em", color: "#666" }}>
+              <strong>출처:</strong>
+              {sources.map((src, idx) => (
+                <div key={idx} style={{ marginTop: 4 }}>{src}</div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 }
+
 
 
