@@ -1,4 +1,4 @@
-import json, numpy as np
+import json, numpy as np, os
 from pathlib import Path
 
 from qdrant_client import QdrantClient
@@ -8,7 +8,7 @@ from sentence_transformers import SentenceTransformer
 QDRANT_URL = "http://localhost:6333"
 COLLECTION = "qa_collection"
 TOP_K = 3
-MODEL_NAME = "jhgan/ko-sroberta-multitask"  # ingest.py와 동일 모델
+MODEL_NAME = os.getenv("EMBED_MODEL", "snunlp/KR-SBERT-V40K-klueNLI-augSTS")  # ingest.py와 동일 모델
 SWEEP_START, SWEEP_END, SWEEP_STEP = 0.75, 0.90, 0.01  # [0.75, 0.89]
 
 # ---- 모델 및 검색 ----

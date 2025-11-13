@@ -6,13 +6,14 @@ import os
 
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 COLLECTION = os.getenv("QDRANT_COLLECTION", "qa_collection")
+EMBED_MODEL = os.getenv("EMBED_MODEL", "snunlp/KR-SBERT-V40K-klueNLI-augSTS")
 
 _model = None
 
 def embed_one(text: str):
     global _model
     if _model is None:
-        _model = SentenceTransformer("jhgan/ko-sroberta-multitask")
+        _model = SentenceTransformer(EMBED_MODEL)
     vec = _model.encode([text], convert_to_numpy=True, normalize_embeddings=True)[0]
     return vec.tolist()
 

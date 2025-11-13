@@ -18,7 +18,8 @@ from app.infrastructure.guards import HallucinationGuard
 load_dotenv()
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "qa_collection")
-SIM_THRESHOLD = float(os.getenv("SIM_THRESHOLD", "0.83"))
+EMBED_MODEL = os.getenv("EMBED_MODEL", "snunlp/KR-SBERT-V40K-klueNLI-augSTS")
+SIM_THRESHOLD = float(os.getenv("SIM_THRESHOLD", "0.75"))
 TOP_K = int(os.getenv("TOP_K", "3"))
 
 # ====== FastAPI ======
@@ -48,7 +49,7 @@ def get_qdrant() -> QdrantClient:
 def get_embedder() -> SentenceTransformerEmbedder:
     global _embedder
     if _embedder is None:
-        _embedder = SentenceTransformerEmbedder("jhgan/ko-sroberta-multitask")
+        _embedder = SentenceTransformerEmbedder(EMBED_MODEL)
     return _embedder
 
 def get_retriever() -> QdrantRetriever:
