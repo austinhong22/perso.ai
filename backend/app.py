@@ -49,7 +49,7 @@ def get_qdrant() -> QdrantClient:
             _qc = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
         else:
             # 로컬 Qdrant 연결
-        _qc = QdrantClient(url=QDRANT_URL)
+            _qc = QdrantClient(url=QDRANT_URL)
     return _qc
 
 def get_embedder() -> SentenceTransformerEmbedder:
