@@ -1,12 +1,25 @@
-import Chat from "../components/Chat";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+import ChatContainer from "../components/ChatContainer";
 
 export default function Page() {
   return (
-    <main style={{ padding: 24 }}>
-      <h1>ESTSOFT RAG Demo</h1>
-      <Chat />
+    <>
+      <Header />
+      <main
+        style={{
+          marginTop: "var(--header-height)",
+          minHeight: `calc(100vh - var(--header-height))`,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <ChatContainer />
     </main>
+      <Footer />
+    </>
   );
 }
+
 
 

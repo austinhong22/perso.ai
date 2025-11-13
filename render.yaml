@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: perso-ai-backend
+    env: python
+    region: singapore
+    plan: free
+    branch: main
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && gunicorn app:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: QDRANT_URL
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: QDRANT_COLLECTION
+        value: qa_collection
+      - key: EMBED_MODEL
+        value: snunlp/KR-SBERT-V40K-klueNLI-augSTS
+      - key: EMBED_DIM
+        value: 768
+      - key: SIM_THRESHOLD
+        value: 0.75
+      - key: TOP_K
+        value: 5
+
