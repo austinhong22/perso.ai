@@ -1,12 +1,18 @@
-import os, json, time
+import os, json, time, sys
+from pathlib import Path
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from qdrant_client import QdrantClient
-from qdrant_client.http import models
-from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
+
+# app 패키지 경로 추가
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from app.application.use_cases import QASearchUseCase
+from app.infrastructure.repositories import QdrantRetriever, SentenceTransformerEmbedder
+from app.infrastructure.guards import HallucinationGuard
 
 # ====== 설정 로드 ======
 load_dotenv()
@@ -27,16 +33,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ====== 싱글톤 리소스 ======
-_model: Optional[SentenceTransformer] = None
+# ====== 싱글톤 리소스 (클린 아키텍처 적용) ======
+_embedder: Optional[SentenceTransformerEmbedder] = None
+_retriever: Optional[QdrantRetriever] = None
+_use_case: Optional[QASearchUseCase] = None
 _qc: Optional[QdrantClient] = None
-
-def get_model() -> SentenceTransformer:
-    global _model
-    if _model is None:
-        # 한국어 의미검색 특화 모델 (ingest.py와 동일 모델 사용)
-        _model = SentenceTransformer("jhgan/ko-sroberta-multitask")
-    return _model
 
 def get_qdrant() -> QdrantClient:
     global _qc
@@ -44,15 +45,32 @@ def get_qdrant() -> QdrantClient:
         _qc = QdrantClient(url=QDRANT_URL)
     return _qc
 
-def embed(texts: List[str]) -> List[List[float]]:
-    model = get_model()
-    vecs = model.encode(
-        texts,
-        batch_size=64,
-        convert_to_numpy=True,
-        normalize_embeddings=True,  # 코사인 거리 안정화
-    )
-    return vecs.tolist()
+def get_embedder() -> SentenceTransformerEmbedder:
+    global _embedder
+    if _embedder is None:
+        _embedder = SentenceTransformerEmbedder("jhgan/ko-sroberta-multitask")
+    return _embedder
+
+def get_retriever() -> QdrantRetriever:
+    global _retriever
+    if _retriever is None:
+        _retriever = QdrantRetriever(
+            client=get_qdrant(),
+            embedder=get_embedder(),
+            collection=QDRANT_COLLECTION
+        )
+    return _retriever
+
+def get_use_case() -> QASearchUseCase:
+    global _use_case
+    if _use_case is None:
+        guard = HallucinationGuard(threshold=SIM_THRESHOLD)
+        _use_case = QASearchUseCase(
+            retriever=get_retriever(),
+            guard=guard,
+            top_k=TOP_K
+        )
+    return _use_case
 
 # ====== 스키마 ======
 class AskReq(BaseModel):
@@ -66,19 +84,10 @@ class AskRes(BaseModel):
     answer: str
     score: float
     matched_question: str
+    sources: List[str] = []  # 프론트엔드 계약에 맞춤
     topk: List[TopKItem] = []
 
 # ====== 유틸 ======
-def search_topk(query: str, k: int = TOP_K):
-    qc = get_qdrant()
-    qv = embed([query])[0]
-    res = qc.search(
-        collection_name=QDRANT_COLLECTION,
-        query_vector=qv,
-        limit=k,
-    )
-    return res
-
 def write_log(record: dict):
     try:
         os.makedirs("logs", exist_ok=True)
@@ -91,7 +100,7 @@ def write_log(record: dict):
 @app.get("/healthz")
 def healthz():
     # 모델/DB 핑
-    _ = embed(["ping"])
+    _ = get_embedder().embed(["ping"])
     _ = get_qdrant().get_collections()
     return {"ok": True}
 
@@ -110,49 +119,25 @@ def ask(req: AskReq):
         raise HTTPException(status_code=400, detail="Empty query")
 
     try:
-        res = search_topk(q, TOP_K)
+        # UseCase를 통한 검색 (클린 아키텍처 적용)
+        use_case = get_use_case()
+        result = use_case.search(q)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Search failed: {e}")
-
-    if not res:
-        raise HTTPException(status_code=404, detail="No result")
-
-    # Top-k 정리
-    topk_list = []
-    for r in res:
-        payload = r.payload or {}
-        topk_list.append(TopKItem(
-            question=payload.get("question", ""),
-            score=float(r.score),
-        ))
-
-    top = res[0]
-    top_payload = top.payload or {}
-    top_score = float(top.score)
-    top_q = top_payload.get("question", "")
-    top_a = top_payload.get("answer", "")
-
-    # 임계값 가드: 낮은 점수는 "데이터셋에 없음"
-    if top_score < SIM_THRESHOLD:
-        answer = "죄송해요, 제가 가지고 있는 데이터셋에는 해당 내용이 없어요. 비슷한 질문으로 다시 시도해보세요."
-        matched_question = ""
-    else:
-        answer = top_a
-        matched_question = top_q
 
     # 로깅
     write_log({
         "ts": int(time.time()),
         "query": q,
-        "score": top_score,
-        "matched_question": matched_question,
-        "verdict": "ok" if matched_question else "fallback",
-        "topk": [{"q": t.question, "score": t.score} for t in topk_list],
+        "score": result.score,
+        "matched_question": result.matched_question,
+        "verdict": "ok" if result.is_valid else "fallback",
     })
 
     return AskRes(
-        answer=answer,
-        score=top_score,
-        matched_question=matched_question,
-        topk=topk_list
+        answer=result.answer,
+        score=result.score,
+        matched_question=result.matched_question,
+        sources=result.sources,
+        topk=[]  # 필요시 UseCase에서 topk도 반환하도록 확장 가능
     )
