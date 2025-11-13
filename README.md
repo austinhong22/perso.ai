@@ -1,5 +1,10 @@
 # Perso.ai 챗봇 시스템
 
+## 개요
+- 목적: 제공된 Q&A.xlsx를 기반으로 벡터 DB(Qdrant)와 임베딩(SBERT)을 활용해, 할루시네이션 없이 정확한 답만 반환하는 지식기반 챗봇 구현
+- 핵심: Clean Architecture 적용, 검색 정확도 향상 전략(Query Expansion, Hybrid Reranking, 동적 임계값), 프론트-백엔드 API 계약 일원화(`/ask`)
+- 프론트엔드: ChatGPT/Claude 스타일 UI, Perso.ai 브랜딩, 출처(Sources) 노출
+
 ## 사용 기술 스택
 - Backend: FastAPI, Uvicorn, Pydantic v2, Qdrant Client, Sentence-Transformers(ko‑SBERT), Pandas/Openpyxl, Pytest, **rapidfuzz**
 - Frontend: Next.js 14(App Router), React 18, TypeScript 5
@@ -30,7 +35,7 @@
   - `full_scan_threshold=10000` (작은 데이터셋 고속 처리)
 - 인덱싱(ingest) 파이프라인:
   - `Q&A.xlsx` → `Q.`/`A.` 파싱 → 질문 해시로 idempotent upsert
-  - 컬렉션 버저닝: `qa_collection_v1` (모델 변경 시 v2, v3... 생성)
+  - 컬렉션 버저닝: 필요 시 `qa_collection_v{n}` 전략으로 확장 가능
 - 검색(쿼리 → Top-K) 및 하이브리드 랭킹:
   - **Query Expansion**: 반말→존댓말, 오타 수정, 브랜드/도메인 정규화 → 최대 5개 변형 생성
   - 각 변형에 대해 Qdrant Top-5 검색 → 중복 제거 → 최대 25개 후보 수집
@@ -95,6 +100,8 @@ app/                      # 클린 아키텍처 계층
     repositories.py      # Retriever, Embedder 인터페이스 (OCP)
   application/
     use_cases.py         # QASearchUseCase (비즈니스 로직 오케스트레이션)
+    query_expander.py    # Query Expansion 규칙
+    reranker.py          # Hybrid Reranking (벡터+문자열)
   infrastructure/
     repositories.py      # QdrantRetriever, SentenceTransformerEmbedder 구현체
     guards.py            # HallucinationGuard (임계값 가드)
@@ -112,23 +119,11 @@ frontend/
   next.config.mjs
   src/
     app/page.tsx
-    components/Chat.tsx  # sources 출처 표시 포함
+    components/          # Header/Footer/ChatContainer/MessageList 등
     lib/api.ts           # /ask 엔드포인트 호출
-scripts/
-  tune_threshold.py      # 임계값 튜닝 스크립트
-  export_examples.py
-.env
 ```
 
-## 환경변수(.env)
-```
-QDRANT_URL=http://localhost:6333
-QDRANT_COLLECTION=qa_collection
-EMBED_DIM=768
-SIM_THRESHOLD=0.83
-TOP_K=3
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
-```
+
 
 ## Backend (FastAPI)
 가상환경 권장: Python 3.11+
@@ -193,7 +188,3 @@ frontend/
     favicon.svg         # 파비콘
 ```
 
-## Qdrant (Docker)
-```bash
-docker run -d --name qdrant -p 6333:6333 qdrant/qdrant:latest
-```
