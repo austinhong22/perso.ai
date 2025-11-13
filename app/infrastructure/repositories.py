@@ -37,7 +37,7 @@ class QdrantRetriever(Retriever):
 class SentenceTransformerEmbedder(Embedder):
     """SentenceTransformer 기반 임베딩 구현체."""
     
-    def __init__(self, model_name: str = "jhgan/ko-sroberta-multitask"):
+    def __init__(self, model_name: str = "snunlp/KR-SBERT-V40K-klueNLI-augSTS"):
         self._model: Optional[SentenceTransformer] = None
         self.model_name = model_name
     

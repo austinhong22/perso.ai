@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     # Security
     secret_key: Optional[str] = None
     
+    # Embedding Model
+    embed_model: str = "snunlp/KR-SBERT-V40K-klueNLI-augSTS"
+    
     # Hallucination Guard
     similarity_threshold: float = 0.8
     enable_source_reference: bool = True

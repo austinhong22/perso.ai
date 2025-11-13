@@ -20,7 +20,7 @@ class Retriever(ABC):
             QAPair 리스트 (score 포함)
         """
         pass
-
+    
 
 class Embedder(ABC):
     """임베딩 생성 인터페이스 (OCP 준수)."""

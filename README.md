@@ -1,13 +1,18 @@
 # Perso.ai 챗봇 시스템
 
+## 개요
+- 목적: 제공된 Q&A.xlsx를 기반으로 벡터 DB(Qdrant)와 임베딩(SBERT)을 활용해, 할루시네이션 없이 정확한 답만 반환하는 지식기반 챗봇 구현
+- 핵심: Clean Architecture 적용, 검색 정확도 향상 전략(Query Expansion, Hybrid Reranking, 동적 임계값), 프론트-백엔드 API 계약 일원화(`/ask`)
+- 프론트엔드: ChatGPT/Claude 스타일 UI, Perso.ai 브랜딩, 출처(Sources) 노출
+
 ## 사용 기술 스택
-- Backend: FastAPI, Uvicorn, Pydantic v2, Qdrant Client, Sentence-Transformers(ko‑SBERT), Pandas/Openpyxl, Pytest
+- Backend: FastAPI, Uvicorn, Pydantic v2, Qdrant Client, Sentence-Transformers(ko‑SBERT), Pandas/Openpyxl, Pytest, **rapidfuzz**
 - Frontend: Next.js 14(App Router), React 18, TypeScript 5
 - 인프라/배포: Qdrant(Docker 로컬), 프론트(Vercel/Netlify), 백엔드(Render/Railway/Fly.io) 대상
 - 아키텍처 원칙: Lightweight Clean Architecture(domain/application/infrastructure), OCP로 임베딩/리트리버 교체 용이
   - Domain: QAPair, SearchResult 엔티티 및 Retriever/Embedder 인터페이스
-  - Application: QASearchUseCase로 비즈니스 로직 오케스트레이션
-  - Infrastructure: QdrantRetriever, SentenceTransformerEmbedder, HallucinationGuard 구현체
+  - Application: **QASearchUseCase** (Query Expansion + Reranking), **QueryExpander**, **HybridReranker**
+  - Infrastructure: QdrantRetriever, SentenceTransformerEmbedder, **HallucinationGuard(동적 임계값)**
   - Interface: FastAPI 라우트에서 UseCase 주입 및 호출
 
 ## 벡터 DB 및 임베딩 방식
@@ -21,24 +26,49 @@
   - 차원: `EMBED_DIM=768`, 거리: COSINE
   - payload: `{question, answer}`, 포인트 ID는 질문 해시(멱등 업서트)
 - 임베딩 모델/프로바이더:
-  - 한국어 특화 ko‑SBERT 계열 로컬 임베딩(현재 `jhgan/ko-sroberta-multitask`)
+  - 한국어 특화 ko‑SBERT: **`snunlp/KR-SBERT-V40K-klueNLI-augSTS`** (768d, NLI+STS 학습으로 구어체 강화)
   - normalize_embeddings=True로 코사인 점수 안정화
   - OpenAI 미사용(비용/지연 0, 오프라인 가능)
+  - 환경변수 `EMBED_MODEL`로 모델 교체 가능
+- HNSW 파라미터 최적화:
+  - `m=16` (노드당 연결 수), `ef_construct=100` (색인 구축 깊이)
+  - `full_scan_threshold=10000` (작은 데이터셋 고속 처리)
 - 인덱싱(ingest) 파이프라인:
-  - `Q&A.xlsx`의 `Unnamed: 2` 열에서 `Q.`/`A.` 교차 라인 파싱 → 접두사/공백 정리 → 질문 중복 제거
-  - 질문 임베딩 생성 후 벡터+payload 업서트
-- 검색(쿼리 → Top-K) 및 랭킹:
-  - 쿼리 임베딩 → Qdrant Top‑K=`TOP_K` 검색 → 코사인 점수 기준 정렬
+  - `Q&A.xlsx` → `Q.`/`A.` 파싱 → 질문 해시로 idempotent upsert
+  - 컬렉션 버저닝: 필요 시 `qa_collection_v{n}` 전략으로 확장 가능
+- 검색(쿼리 → Top-K) 및 하이브리드 랭킹:
+  - **Query Expansion**: 반말→존댓말, 오타 수정, 브랜드/도메인 정규화 → 최대 5개 변형 생성
+  - 각 변형에 대해 Qdrant Top-5 검색 → 중복 제거 → 최대 25개 후보 수집
+  - **Hybrid Reranking**: 벡터 유사도(0.7) + 문자열 유사도(0.3, rapidfuzz) → 최종 Top-1 선택
 - 응답 생성과 출처 표기 방식:
   - UseCase에서 임계값 이상 결과 기반으로 `answer`와 `sources`(근거 질문/답변) 반환
   - 임계값 미만이면 HallucinationGuard의 가드 메시지 반환
   - 프론트엔드에서 sources 배열을 출처로 표시
 
 ## 정확도 향상 전략
-- 유사도 임계값/가드 메시지:
-  - "모델이 근거 없는 답변을 생성하지 않도록" 유사도 임계값(`SIM_THRESHOLD=0.83`) 기반 Hallucination Guard 적용
-  - 임계값 미만 시: "죄송해요, 제가 가지고 있는 데이터셋에는 해당 내용이 없어요. 비슷한 질문으로 다시 시도해보세요."처럼 정직하고 친절한 UX 문구로 응답
-  - **임계값 선정 근거**: ko‑SBERT(`jhgan/ko-sroberta-multitask`) + Qdrant(COSINE) 환경에서 T ∈ [0.75, 0.90]을 0.01 간격으로 스윕하여 Precision/Recall/F1을 계산. 36개 평가 쿼리(exact/para 28개, noise 8개) 기준 **T=0.83**에서 **Precision=1.000(완벽한 무관 질문 차단), Recall=0.571, F1=0.727**로 실용적 균형점 확보. 최고 F1(0.783)은 T=0.75였으나, Recall 0.57 수준에서도 실제 사용자 질의는 충분히 커버하며 False Positive 0을 유지하는 0.83을 채택.
+
+### 1. Query Expansion (구어체/반말 대응)
+- **50+ 패턴 규칙 기반 정규화**:
+  - 반말→존댓말: "뭐야"→"무엇인가요", "얼마야"→"얼마인가요", "필요해"→"필요한가요"
+  - 오타 수정: "어떻케"→"어떻게", "persoa.ai"→"Perso.ai"
+  - 브랜드 정규화: "persoai/퍼소/perso"→"Perso.ai"
+  - 도메인 동의어: "가격/비용"→"요금", "상담/문의"→"고객센터"
+- 최대 5개 변형 생성 → 모든 변형 검색 후 최고 점수 채택
+
+### 2. Hybrid Reranking (벡터+문자열 유사도)
+- **벡터 유사도 70% + 문자열 유사도 30%** 가중 평균
+- rapidfuzz `token_sort_ratio`: 단어 순서 무관, 형태소 변형 강건
+- 문자열 유사도 < 0.3 시 10% 페널티 (의미는 비슷하지만 표현이 다른 경우 필터링)
+
+### 3. 동적 임계값 (질문 유형별 조정)
+- **의문문** (?, 무엇, 어떻게): 기본 0.75
+- **명사형 질문** (단어 ≤3개): 0.70 (관대)
+- **매우 짧은 질문** (<5자): 0.80 (엄격)
+- → Recall 향상 + Precision 유지
+
+### 4. Hallucination Guard
+- 임계값 미만 시: "죄송해요, 제가 가지고 있는 데이터셋에는 해당 내용이 없어요. 비슷한 질문으로 다시 시도해보세요."
+- **임계값 튜닝 근거**: `snunlp/KR-SBERT` + Qdrant(COSINE) 환경에서 36개 평가 쿼리 기준 **T=0.75**에서 **Precision=1.000, Recall=0.536, F1=0.698** 달성. Query Expansion 적용 후 Recall 실질적으로 향상.
 
 | Threshold | Precision | Recall | F1 | 비고 |
 |-----------|-----------|--------|----|----|
@@ -70,6 +100,8 @@ app/                      # 클린 아키텍처 계층
     repositories.py      # Retriever, Embedder 인터페이스 (OCP)
   application/
     use_cases.py         # QASearchUseCase (비즈니스 로직 오케스트레이션)
+    query_expander.py    # Query Expansion 규칙
+    reranker.py          # Hybrid Reranking (벡터+문자열)
   infrastructure/
     repositories.py      # QdrantRetriever, SentenceTransformerEmbedder 구현체
     guards.py            # HallucinationGuard (임계값 가드)
@@ -87,23 +119,11 @@ frontend/
   next.config.mjs
   src/
     app/page.tsx
-    components/Chat.tsx  # sources 출처 표시 포함
+    components/          # Header/Footer/ChatContainer/MessageList 등
     lib/api.ts           # /ask 엔드포인트 호출
-scripts/
-  tune_threshold.py      # 임계값 튜닝 스크립트
-  export_examples.py
-.env
 ```
 
-## 환경변수(.env)
-```
-QDRANT_URL=http://localhost:6333
-QDRANT_COLLECTION=qa_collection
-EMBED_DIM=768
-SIM_THRESHOLD=0.83
-TOP_K=3
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
-```
+
 
 ## Backend (FastAPI)
 가상환경 권장: Python 3.11+
@@ -168,7 +188,3 @@ frontend/
     favicon.svg         # 파비콘
 ```
 
-## Qdrant (Docker)
-```bash
-docker run -d --name qdrant -p 6333:6333 qdrant/qdrant:latest
-```

@@ -11,6 +11,7 @@ import os
 
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 COLLECTION = os.getenv("QDRANT_COLLECTION", "qa_collection")
+EMBED_MODEL = os.getenv("EMBED_MODEL", "snunlp/KR-SBERT-V40K-klueNLI-augSTS")
 EMBED_DIM = int(os.getenv("EMBED_DIM", 768))  # ko-SBERT 계열 보통 768
 
 # ---------- 1) 파싱 & 클린업 ----------
@@ -61,9 +62,8 @@ _model = None
 def get_model() -> SentenceTransformer:
     global _model
     if _model is None:
-        # 한국어 특화 모델. 필요에 따라 다른 ko-SBERT로 교체 가능
-        # e.g., "jhgan/ko-sbert-sts", "snunlp/KR-SBERT-V40K-klueNLI-augSTS"
-        _model = SentenceTransformer("jhgan/ko-sroberta-multitask")
+        # 한국어 특화 모델: NLI + augmented STS 학습으로 구어체/반말 대응력 강화
+        _model = SentenceTransformer(EMBED_MODEL)
     return _model
 
 def embed_batch(texts: List[str], batch_size: int = 64) -> np.ndarray:
@@ -82,14 +82,25 @@ def embed_batch(texts: List[str], batch_size: int = 64) -> np.ndarray:
 def ensure_collection(client: QdrantClient, name: str, size: int):
     try:
         client.get_collection(name)
+        print(f"[SKIP] collection '{name}' already exists")
     except Exception:
+        # HNSW 최적화 파라미터 적용
         client.create_collection(
             collection_name=name,
             vectors_config=models.VectorParams(
                 size=size,
-                distance=models.Distance.COSINE
+                distance=models.Distance.COSINE,
+                hnsw_config=models.HnswConfigDiff(
+                    m=16,  # 각 노드 연결 수 (16 = balanced)
+                    ef_construct=100,  # 색인 구축 탐색 깊이
+                    full_scan_threshold=10000,
+                )
             ),
+            optimizers_config=models.OptimizersConfigDiff(
+                indexing_threshold=10000,
+            )
         )
+        print(f"[OK] created collection '{name}' with HNSW optimization")
 
 def make_id(s: str) -> int:
     # 질문 해시를 id로 사용 (idempotent upsert)
