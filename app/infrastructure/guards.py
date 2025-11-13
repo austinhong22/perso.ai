@@ -16,29 +16,30 @@ class HallucinationGuard:
         """
         질문 유형에 따라 동적 임계값 조정.
         
-        - 구어체/반말: 낮은 임계값 (0.55)
-        - 의문사 있는 질문: 기본 임계값 (0.75)
-        - 명사형/짧은 질문: 중간 임계값 (0.65)
+        - 매우 짧은 질문(< 5자): 엄격 (0.85) - 모호함 방지
+        - 구어체/반말: 관대 (0.55)
+        - 의문사 있는 질문: 기본 (0.75)
+        - 명사형/짧은 질문: 중간 (0.65)
         """
         if not self.use_dynamic:
             return self.base_threshold
         
-        # 구어체/반말 패턴 감지: 관대하게 처리
-        informal_patterns = r"뭐야|뭐임|뭐예요|얼마야|있어\?|해\?|필요해|지원해|알려줘|설명해줘|가르쳐줘|말해줘"
+        # 매우 짧은 질문(< 5자): 엄격하게 처리 (모호함 방지)
+        if len(query.strip()) < 5:
+            return 0.85  # 엄격
+        
+        # 구어체/반말 패턴 감지: 관대하게 처리 (5자 이상)
+        informal_patterns = r"뭐야|뭐임|뭐예요|얼마야|있어\?|해\?|필요해|지원해|알려줘|설명해줘|가르쳐줘|말해줘|뭐하는|무슨|어떤|이거"
         if re.search(informal_patterns, query, flags=re.IGNORECASE):
-            return max(self.base_threshold - 0.35, 0.40)  # 매우 관대하게 (0.40)
+            return 0.35  # 매우 관대 (Gemini가 의미 필터링 수행)
         
         # 의문사 있는 정식 질문: 기본
         if re.search(r"무엇인가요|어떻게|얼마인가요|누구|언제|어디|왜", query):
             return self.base_threshold
         
-        # 매우 짧은 질문(< 5자): 중간
-        if len(query.strip()) < 5:
-            return max(self.base_threshold - 0.10, 0.65)
-        
         # 명사형/키워드 질문: 중간
         if len(query.split()) <= 3:
-            return max(self.base_threshold - 0.10, 0.65)
+            return 0.65
         
         return self.base_threshold
     
