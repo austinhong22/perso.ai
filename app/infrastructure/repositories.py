@@ -44,16 +44,24 @@ class SentenceTransformerEmbedder(Embedder):
     @property
     def model(self) -> SentenceTransformer:
         if self._model is None:
-            self._model = SentenceTransformer(self.model_name)
+            # 메모리 절약: device 명시, 모델 로딩 최적화
+            import os
+            os.environ["TOKENIZERS_PARALLELISM"] = "false"  # 경고 방지
+            self._model = SentenceTransformer(
+                self.model_name,
+                device="cpu",  # CPU 명시 (GPU 없음)
+            )
         return self._model
     
     def embed(self, texts: List[str]) -> List[List[float]]:
         """텍스트를 벡터로 임베딩."""
+        # 메모리 절약: batch_size를 1로 줄임 (Render Free 플랜 대응)
         vecs = self.model.encode(
             texts,
-            batch_size=64,
+            batch_size=1,  # 64 → 1 (메모리 절약)
             convert_to_numpy=True,
             normalize_embeddings=True,
+            show_progress_bar=False,  # 로그 줄이기
         )
         return vecs.tolist()
 
