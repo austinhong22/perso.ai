@@ -14,7 +14,7 @@ export async function ask(
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30초 타임아웃
+  const timeoutId = setTimeout(() => controller.abort(), 120000); // 120초 타임아웃 (모델 로딩 대응)
 
   try {
     const resp = await fetch(`${base}/ask`, {
@@ -31,6 +31,9 @@ export async function ask(
     if (!resp.ok) {
       if (resp.status === 400) {
         throw new Error("잘못된 요청입니다. 질문을 확인해주세요.");
+      }
+      if (resp.status === 502) {
+        throw new Error("백엔드 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.");
       }
       if (resp.status === 500) {
         throw new Error("서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
