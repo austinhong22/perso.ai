@@ -10,8 +10,9 @@ export async function ask(
   query: string,
   signal?: AbortSignal
 ): Promise<AskResponse> {
-  const base =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  // Next.js API Route 사용 (Mixed Content 문제 해결)
+  // 브라우저는 항상 HTTPS로 요청 → Vercel 서버가 EC2로 프록시
+  const base = "/api";
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 120000); // 120초 타임아웃 (모델 로딩 대응)
