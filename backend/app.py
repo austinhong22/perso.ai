@@ -118,18 +118,30 @@ def write_log(record: dict):
 # ====== 라우팅 ======
 @app.get("/healthz")
 def healthz():
-    # 모델/DB 핑
-    _ = get_embedder().embed(["ping"])
-    _ = get_qdrant().get_collections()
-    return {"ok": True}
+    # 기본 헬스체크 (서버가 작동하는지만 확인)
+    return {"status": "ok"}
+
+@app.get("/healthz/deep")
+def healthz_deep():
+    # 심화 헬스체크 (모델/DB 연결 확인)
+    try:
+        _ = get_embedder().embed(["ping"])
+        _ = get_qdrant().get_collections()
+        return {"status": "ok", "embedder": "ok", "qdrant": "ok"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}, 503
 
 @app.on_event("startup")
 def on_startup():
-    # 워밍업: 콜드스타트 비용 최소화
-    try:
-        _ = healthz()
-    except Exception:
-        pass
+    # 워밍업: 콜드스타트 비용 최소화 (비동기로 실행, 실패해도 서버 시작은 계속)
+    import threading
+    def warmup():
+        try:
+            _ = get_embedder().embed(["ping"])
+            _ = get_qdrant().get_collections()
+        except Exception:
+            pass  # 워밍업 실패해도 서버는 정상 시작
+    threading.Thread(target=warmup, daemon=True).start()
 
 @app.post("/ask", response_model=AskRes)
 def ask(req: AskReq):
