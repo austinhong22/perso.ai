@@ -394,10 +394,7 @@ TOP_K=5
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 
-**⚠️ 보안 주의사항:**
-- `.env` 파일은 `.gitignore`에 포함되어 Git에 커밋되지 않습니다.
-- `GEMINI_API_KEY`는 절대 공개 저장소에 업로드하지 마세요.
-- `env.sample` 파일을 참고하여 `.env` 파일을 생성하세요.
+
 
 ## Backend (FastAPI)
 가상환경 권장: Python 3.11+
@@ -477,28 +474,6 @@ frontend/
     favicon.svg         # 파비콘
 ```
 
-## 🚀 배포 가이드
-
-본 프로젝트는 **완전 무료**로 배포할 수 있습니다.
-
-### 배포 구조
-```
-Frontend (Vercel - 무료)
-    ↓
-Backend (Render - 무료 750시간/월)
-    ↓
-Qdrant Cloud (무료 1GB)
-```
-
-### 빠른 시작
-자세한 배포 방법은 **[DEPLOYMENT.md](./DEPLOYMENT.md)** 를 참고하세요.
-
-**배포 순서:**
-1. Qdrant Cloud 설정 + 데이터 마이그레이션
-2. Backend를 Render에 배포
-3. Frontend를 Vercel에 배포
-
-**예상 소요 시간:** 30분
 
 
 
