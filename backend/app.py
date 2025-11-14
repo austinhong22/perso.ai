@@ -117,6 +117,7 @@ def write_log(record: dict):
 
 # ====== 라우팅 ======
 @app.get("/healthz")
+@app.head("/healthz")  # Render 헬스체크는 HEAD 메서드 사용
 def healthz():
     # 기본 헬스체크 (서버가 작동하는지만 확인)
     return {"status": "ok"}
