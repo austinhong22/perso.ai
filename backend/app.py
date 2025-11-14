@@ -131,17 +131,8 @@ def healthz_deep():
     except Exception as e:
         return {"status": "error", "message": str(e)}, 503
 
-@app.on_event("startup")
-def on_startup():
-    # 워밍업: 콜드스타트 비용 최소화 (비동기로 실행, 실패해도 서버 시작은 계속)
-    import threading
-    def warmup():
-        try:
-            _ = get_embedder().embed(["ping"])
-            _ = get_qdrant().get_collections()
-        except Exception:
-            pass  # 워밍업 실패해도 서버는 정상 시작
-    threading.Thread(target=warmup, daemon=True).start()
+# startup 이벤트 제거: 모델 로딩이 느려서 worker timeout 발생 방지
+# 모델은 첫 요청 시 lazy loading으로 로드됨
 
 @app.post("/ask", response_model=AskRes)
 def ask(req: AskReq):
